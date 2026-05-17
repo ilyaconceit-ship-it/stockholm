@@ -24,7 +24,7 @@ const CATEGORIES = ["admin_branch", "curator", "tech_curator", "master", "broadc
 type Member = {
   id: string; nickname: string; discord_id: string | null; name: string | null;
   category: string; join_date: string; warnings: string | null; vacation: boolean; active: boolean;
-  avatar: string | null;
+  avatar: string | null; gender: string | null;
 };
 
 function StaffRow({ m, isAdmin, onSave, onDel }: { m: Member; isAdmin: boolean; onSave: (patch: any) => void; onDel: () => void }) {
@@ -154,9 +154,24 @@ function StaffPage() {
   const [adding, setAdding] = useState<string | null>(null);
   const [newRow, setNewRow] = useState({ nickname: "", discord_id: "" });
 
-  const grouped = CATEGORIES.map((cat) => ({
-    cat, items: staff.filter((s) => s.category === cat),
-  }));
+  const grouped = CATEGORIES.map((cat) => {
+    const items = staff.filter((s) => s.category === cat);
+
+    // For broadcasters, split by gender
+    if (cat === "broadcaster") {
+      const males = items.filter((s) => s.gender === "male");
+      const females = items.filter((s) => s.gender === "female");
+      const unknown = items.filter((s) => !s.gender);
+
+      return [
+        { cat: "broadcaster_male" as const, label: "Бродкастеры (М)", items: males },
+        { cat: "broadcaster_female" as const, label: "Бродкастеры (Ж)", items: females },
+        ...(unknown.length > 0 ? [{ cat: "broadcaster" as const, label: "Бродкастеры", items: unknown }] : []),
+      ];
+    }
+
+    return [{ cat, label: CATEGORY_LABELS[cat], items }];
+  }).flat();
 
   if (!isBroadcasterBranch) return null;
 
@@ -164,11 +179,11 @@ function StaffPage() {
     <div>
       <PageHeader title="Ветка" subtitle="Реестр персонала Broadcaster" />
       <div className="space-y-6">
-        {grouped.map(({ cat, items }, idx) => (
-          <motion.div key={cat} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
+        {grouped.map(({ cat, label, items }, idx) => (
+          <motion.div key={`${cat}-${idx}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
             <GlassCard>
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-display text-2xl text-white/90">{CATEGORY_LABELS[cat]}</h2>
+                <h2 className="font-display text-2xl text-white/90">{label}</h2>
                 {isAdmin && (
                   <button onClick={() => setAdding(adding === cat ? null : cat)} className="flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs hover:bg-white/10">
                     <Plus className="h-3.5 w-3.5" /> Добавить
@@ -203,7 +218,9 @@ function StaffPage() {
                         <td className="px-4 py-3 text-right">
                           <button onClick={() => {
                             if (!newRow.nickname) return;
-                            ins.mutate({ ...newRow, category: cat }, { onSuccess: () => { setNewRow({ nickname: "", discord_id: "" }); setAdding(null); toast.success("Добавлено"); } });
+                            const actualCategory = cat === "broadcaster_male" || cat === "broadcaster_female" ? "broadcaster" : cat;
+                            const gender = cat === "broadcaster_male" ? "male" : cat === "broadcaster_female" ? "female" : null;
+                            ins.mutate({ ...newRow, category: actualCategory, gender }, { onSuccess: () => { setNewRow({ nickname: "", discord_id: "" }); setAdding(null); toast.success("Добавлено"); } });
                           }} className="text-emerald-300 hover:text-emerald-200"><Check className="h-4 w-4" /></button>
                         </td>
                       </tr>

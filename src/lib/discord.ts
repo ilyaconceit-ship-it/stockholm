@@ -156,49 +156,34 @@ export async function autoApproveDiscordUser(
       .single();
 
     if (!existing) {
-      // Determine category based on role and gender (for broadcasters)
-      let categoryName = null;
+      // Determine gender for broadcasters
+      let gender: string | null = null;
 
       if (primaryRole === "broadcaster") {
-        // Check gender roles from stored member roles
         const memberRoles: string[] = (globalThis as any).__lastMemberRoles || [];
         const isMale = memberRoles.includes(GENDER_ROLE_MALE);
         const isFemale = memberRoles.includes(GENDER_ROLE_FEMALE);
 
-        if (isMale) {
-          categoryName = "Бродкастер (М)";
-        } else if (isFemale) {
-          categoryName = "Бродкастер (Ж)";
-        } else {
-          categoryName = "Бродкастер"; // fallback if no gender role
-        }
+        if (isMale) gender = "male";
+        else if (isFemale) gender = "female";
       }
 
-      // Get category ID
-      const { data: category } = await supabase
+      // Get default category (highest display_order = entry level)
+      const { data: defaultCategory } = await supabase
         .from("staff_categories")
         .select("id")
         .eq("branch", primaryRole)
-        .eq("name", categoryName || "")
-        .maybeSingle();
-
-      // Fallback: get default category (highest display_order = entry level)
-      const { data: defaultCategory } = !category
-        ? await supabase
-            .from("staff_categories")
-            .select("id")
-            .eq("branch", primaryRole)
-            .order("display_order", { ascending: false })
-            .limit(1)
-            .single()
-        : { data: null };
+        .order("display_order", { ascending: false })
+        .limit(1)
+        .single();
 
       await supabase.from("staff_members").insert({
         nickname: username,
         discord_id: discordId,
         avatar: avatarHash,
         category: primaryRole,
-        category_id: category?.id || defaultCategory?.id,
+        category_id: defaultCategory?.id,
+        gender,
         join_date: new Date().toISOString().split("T")[0],
         warnings: "0",
         vacation: false,
