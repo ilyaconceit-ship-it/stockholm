@@ -34,11 +34,12 @@ function LoginPage() {
 
   const loginWithDiscord = async () => {
     setDiscordLoading(true);
+    const redirectUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "discord",
       options: {
         scopes: "identify guilds guilds.members.read",
-        redirectTo: window.location.origin + "/auth/callback",
+        redirectTo: `${redirectUrl}/auth/callback`,
       },
     });
     if (error) {
