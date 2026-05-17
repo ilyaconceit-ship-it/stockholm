@@ -20,12 +20,18 @@ CREATE POLICY "rules read approved" ON public.branch_rules
 CREATE POLICY "rules admin write" ON public.branch_rules
   FOR ALL
   USING (
-    public.has_role(auth.uid(), 'admin') OR
-    public.has_role(auth.uid(), 'admin_' || branch)
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      WHERE user_id = auth.uid()
+        AND (role::text = 'admin' OR role::text = 'admin_' || branch)
+    )
   )
   WITH CHECK (
-    public.has_role(auth.uid(), 'admin') OR
-    public.has_role(auth.uid(), 'admin_' || branch)
+    EXISTS (
+      SELECT 1 FROM public.user_roles
+      WHERE user_id = auth.uid()
+        AND (role::text = 'admin' OR role::text = 'admin_' || branch)
+    )
   );
 
 -- Create index for faster queries
