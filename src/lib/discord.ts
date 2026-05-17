@@ -149,11 +149,21 @@ export async function autoApproveDiscordUser(
       .single();
 
     if (!existing) {
+      // Get default category for this role (lowest display_order = entry level)
+      const { data: defaultCategory } = await supabase
+        .from("staff_categories")
+        .select("id")
+        .eq("branch", primaryRole)
+        .order("display_order", { ascending: false })
+        .limit(1)
+        .single();
+
       await supabase.from("staff_members").insert({
         nickname: username,
         discord_id: discordId,
         avatar: avatarHash,
         category: primaryRole,
+        category_id: defaultCategory?.id,
         join_date: new Date().toISOString().split("T")[0],
         warnings: "0",
         vacation: false,
