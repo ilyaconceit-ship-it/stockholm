@@ -1,134 +1,274 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, GlassCard } from "@/components/layout/PageHeader";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/lib/stores/auth";
-import { getBranch, STAFF_ROLE_LABELS } from "@/lib/discord";
-import { BookOpen } from "lucide-react";
+import { getBranch, isBranchAdmin, STAFF_ROLE_LABELS } from "@/lib/discord";
+import { useList, useInsert, useUpdate, useDelete } from "@/lib/hooks/useTable";
+import { BookOpen, Plus, Pencil, Trash2, X, Check, GripVertical } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/rules")({ component: RulesPage });
 
-const tribuneRules = [
-  {
-    name: "Шоу подкатов",
-    description: "На трибуну вызывается участник и 2 парней или 2 девушек (в зависимости от запроса). Кандидаты высказывают по 1 подкату и после этого участник выбирает чей подкат ему понравился больше после этого они решают, уйти в лавруму или нет. Если нет, то участники передают приветы и спускаются с трибуны.",
-    script: [
-      "1 ведущий: Всем привет сегодня у нас трибуна Шоу подкатов. Давайте кратко пройдёмся по правилам! Мы вызываем первого участника, спрашиваем его критерии и находим ему 2 кандидатов. После кандидаты говорят свои подкаты по 1 с каждого. И участник выбирает чей подкат ему понравился больше. И они уходят в лавруму",
-      "2 ведущий: Но если же участники не хотят уходить в лавруму они все передают приветы и спускаются! Поэтому помним что на этой трибуне нет скипов."
-    ],
-    notes: [
-      "На этой трибуне нет скипов, если участник никого не отказывается кого то выбирать все участники передают приветы и спускаются",
-      "Первые 30 минут мы не поднимаем стафф приоритет на обычных юзеров",
-      "Заранее приготовить розыгрыши и интерактив трибуну"
-    ]
-  },
-  {
-    name: "Быстрые свидания",
-    description: "Вызывается первый участник и озвучивает свои критерии. После этого мы поднимаем ему пару и даём 1 минуту на знакомство. Если кто-то из участников не заинтересован в своём собеседнике он может сказать \"скип\" но не ранее 10 секунд иначе это будет считаться самоскипом. Скипы работают в обе стороны.",
-    script: [
-      "1 ведущий: Всем привет сегодня у нас трибуна Быстрые свидания. Давайте кратко пройдёмся по правилам! Мы вызываем первого участника, спрашиваем его критерии и находим ему собеседника. После это им даётся 1 минута на знакомство. Если они нашли общий язык отправляются в лавруму!",
-      "2 ведущий: По завершению каждого вопроса выбирают одного кандидата который покинет трибуну до тех пор пока не останется один человек с которым наш участник уйдёт в лавруму."
-    ],
-    notes: [
-      "Участник имеет только 3 скипа, после 3 скипа он может уйти в лавруму или самоскипнуться",
-      "Самоскип работает таким образом, кто нарушил правил 10 секунд или сам решил уйти тот и уходит, второй участник остаётся на трибуне",
-      "Заранее приготовить розыгрыши и интерактив трибуну"
-    ]
-  },
-  {
-    name: "Синяя Кнопка",
-    description: "На этой трибуне мы вызываем первого участника и подбираем ему собеседника исходя из его запросов. После этого даём им 1 минуту на знакомства. Если человек понимает что собеседник ему не интересен он может сказать \"скип\", но не ранее 10 секунд. Важно скипает только тот кто первый вышел на трибуну. Если всё прошло успешно люди отправляются в лавруму.",
-    script: [
-      "1 ведущий: Всем привет сегодня у нас трибуна Синяя кнопка. Давайте кратко пройдёмся по правилам! Мы вызываем первого участника, спрашиваем его критерии и находим ему собеседника. После это им даётся 1 минута на знакомство. Если они нашли общий язык отправляются в лавруму!",
-      "2 ведущий: Если же участнику не нравится его собеседник он может сказать скип, скипает только тот участник который первый вышел на трибуну."
-    ],
-    notes: [
-      "Участник имеет только 3 скипа, после 3 скипа он может уйти в лавруму или самоскипнуться",
-      "Самоскип работает таким образом, кто нарушил правил 10 секунд или сам решил уйти тот и уходит, второй участник остаётся на трибуне",
-      "Заранее приготовить розыгрыши и интерактив трибуну"
-    ]
-  },
-  {
-    name: "Сердца за любовь",
-    description: "На этой трибуне мы поднимаем участника и по его запросам вызываем 3 кандидатов. У участника есть 3 вопроса на которые поочерёдно отвечают кандидаты. После того как все ответили на вопросы участник выбирает одного из кандидатов, что бы забрать его в лавруму. Оставшиеся кандидаты передают приветы и спускаются с трибуны.",
-    script: [
-      "1 ведущий: Всем привет сегодня у нас трибуна Сердца за любовь. Давайте кратко пройдёмся по правилам! Мы поднимаем первого участника и по его критериям выбираем по ручкам или из чата 3 кандидатов. После этого наш участник задаёт 2 вопроса всем кандидатам.",
-      "2 ведущий: По завершению каждого вопроса выбирают одного кандидата который покинет трибуну до тех пор пока не останется один человек с которым наш участник уйдёт в лавруму."
-    ],
-    notes: [
-      "На этой трибуне нет скипов",
-      "Если участник затрудняется с вопросами да бы не тянуть ведущий может помочь",
-      "Заранее приготовить розыгрыши и интерактив трибуну"
-    ]
-  }
-];
+type Rule = {
+  id: string;
+  branch: string;
+  title: string;
+  description: string;
+  display_order: number;
+};
+
+function RuleCard({
+  rule,
+  isAdmin,
+  onEdit,
+  onDelete
+}: {
+  rule: Rule;
+  isAdmin: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      layout
+    >
+      <GlassCard>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h2 className="mb-4 font-display text-2xl text-white">{rule.title}</h2>
+            <div className="whitespace-pre-wrap rounded-lg bg-white/[0.02] p-4 text-sm text-white/70">
+              {rule.description}
+            </div>
+          </div>
+
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onEdit}
+                className="rounded-md p-2 text-white/40 transition-colors hover:bg-white/5 hover:text-white"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+
+              {confirmDelete ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => { onDelete(); setConfirmDelete(false); }}
+                    className="rounded-md p-2 text-red-400 transition-colors hover:bg-red-500/10"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="rounded-md p-2 text-white/40 transition-colors hover:bg-white/5"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="rounded-md p-2 text-white/40 transition-colors hover:bg-white/5 hover:text-red-400"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </GlassCard>
+    </motion.div>
+  );
+}
+
+function RuleEditor({
+  rule,
+  branch,
+  onSave,
+  onCancel,
+}: {
+  rule?: Rule;
+  branch: string;
+  onSave: (data: Partial<Rule>) => void;
+  onCancel: () => void;
+}) {
+  const [title, setTitle] = useState(rule?.title || "");
+  const [description, setDescription] = useState(rule?.description || "");
+
+  const handleSave = () => {
+    if (!title.trim() || !description.trim()) {
+      toast.error("Заполните все поля");
+      return;
+    }
+    onSave({ title, description, branch });
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+    >
+      <GlassCard>
+        <h3 className="mb-4 font-display text-xl text-white">
+          {rule ? "Редактировать раздел" : "Новый раздел"}
+        </h3>
+
+        <div className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm text-white/60">Название</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Например: Правила трибуны"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder-white/30 focus:border-white/20 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm text-white/60">Описание</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Подробное описание правил..."
+              rows={8}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white placeholder-white/30 focus:border-white/20 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={onCancel}
+              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-white/70 transition-colors hover:bg-white/5"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={handleSave}
+              className="rounded-lg bg-white px-4 py-2 text-sm text-black transition-colors hover:bg-white/90"
+            >
+              Сохранить
+            </button>
+          </div>
+        </div>
+      </GlassCard>
+    </motion.div>
+  );
+}
 
 function RulesPage() {
   const { role } = useAuthStore();
   const branch = getBranch(role ?? "");
-  const isBroadcaster = branch === "broadcaster" || role === "admin";
+  const isAdmin = isBranchAdmin(role ?? "");
 
-  if (!isBroadcaster) {
-    const branchLabel = branch ? STAFF_ROLE_LABELS[branch] : "вашей ветки";
-    return (
-      <div>
-        <PageHeader title="Памятка" subtitle={`Правила ветки ${branchLabel}`} />
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <GlassCard>
-            <div className="flex flex-col items-center py-16 text-center">
-              <BookOpen className="mb-4 h-10 w-10 text-white/20" />
-              <p className="text-white/50">Памятка для ветки {branchLabel} пока не заполнена</p>
-              <p className="mt-2 text-xs text-white/30">Скоро здесь появятся правила и инструкции</p>
-            </div>
-          </GlassCard>
-        </motion.div>
-      </div>
-    );
-  }
+  const { data: rules = [] } = useList<Rule>("branch_rules", { col: "display_order", asc: true });
+  const ins = useInsert("branch_rules");
+  const upd = useUpdate("branch_rules");
+  const del = useDelete("branch_rules");
+
+  const [editing, setEditing] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+
+  const branchRules = rules.filter((r) => r.branch === branch);
+  const branchLabel = branch ? STAFF_ROLE_LABELS[branch] : "вашей ветки";
+
+  const handleSave = (ruleId: string | null, data: Partial<Rule>) => {
+    if (ruleId) {
+      upd.mutate(
+        { id: ruleId, patch: data },
+        {
+          onSuccess: () => {
+            toast.success("Сохранено");
+            setEditing(null);
+          },
+        }
+      );
+    } else {
+      ins.mutate(
+        { ...data, display_order: branchRules.length },
+        {
+          onSuccess: () => {
+            toast.success("Добавлено");
+            setAdding(false);
+          },
+        }
+      );
+    }
+  };
+
+  const handleDelete = (ruleId: string) => {
+    del.mutate(ruleId, {
+      onSuccess: () => toast.success("Удалено"),
+      onError: (e: any) => toast.error("Ошибка: " + e.message),
+    });
+  };
 
   return (
     <div>
-      <PageHeader title="Памятка" subtitle="Правила проведения трибун" />
+      <PageHeader title="Памятка" subtitle={`Правила ветки ${branchLabel}`} />
 
       <div className="space-y-6">
-        {tribuneRules.map((tribune, idx) => (
-          <motion.div
-            key={tribune.name}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.1 }}
-          >
+        {isAdmin && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <button
+              onClick={() => setAdding(true)}
+              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white transition-colors hover:bg-white/10"
+            >
+              <Plus className="h-4 w-4" />
+              Добавить раздел
+            </button>
+          </motion.div>
+        )}
+
+        <AnimatePresence mode="popLayout">
+          {adding && (
+            <RuleEditor
+              branch={branch!}
+              onSave={(data) => handleSave(null, data)}
+              onCancel={() => setAdding(false)}
+            />
+          )}
+
+          {branchRules.map((rule) =>
+            editing === rule.id ? (
+              <RuleEditor
+                key={rule.id}
+                rule={rule}
+                branch={branch!}
+                onSave={(data) => handleSave(rule.id, data)}
+                onCancel={() => setEditing(null)}
+              />
+            ) : (
+              <RuleCard
+                key={rule.id}
+                rule={rule}
+                isAdmin={isAdmin}
+                onEdit={() => setEditing(rule.id)}
+                onDelete={() => handleDelete(rule.id)}
+              />
+            )
+          )}
+        </AnimatePresence>
+
+        {branchRules.length === 0 && !adding && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <GlassCard>
-              <h2 className="mb-4 font-display text-2xl text-white">{tribune.name}</h2>
-
-              <div className="mb-6 rounded-lg bg-white/[0.02] p-4 text-sm text-white/70">
-                {tribune.description}
-              </div>
-
-              <div className="mb-6">
-                <h3 className="mb-3 text-sm font-medium uppercase tracking-wider text-white/50">Пример деления слов</h3>
-                <div className="space-y-3">
-                  {tribune.script.map((line, i) => (
-                    <div key={i} className="rounded-lg border border-white/5 bg-white/[0.03] p-3 text-sm text-white/80">
-                      {line}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="mb-3 text-sm font-medium uppercase tracking-wider text-white/50">Примечания</h3>
-                <ul className="space-y-2">
-                  {tribune.notes.map((note, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-white/70">
-                      <span className="mt-1 text-white/40">→</span>
-                      <span>{note}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="flex flex-col items-center py-16 text-center">
+                <BookOpen className="mb-4 h-10 w-10 text-white/20" />
+                <p className="text-white/50">Памятка для ветки {branchLabel} пока не заполнена</p>
+                {isAdmin && (
+                  <p className="mt-2 text-xs text-white/30">Нажмите "Добавить раздел" чтобы начать</p>
+                )}
               </div>
             </GlassCard>
           </motion.div>
-        ))}
+        )}
       </div>
     </div>
   );
