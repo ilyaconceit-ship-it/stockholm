@@ -109,15 +109,30 @@ function StaffRow({ m, isAdmin, onSave, onDel, index }: { m: Member; isAdmin: bo
             ) : (
               <>
                 <select
-                  value={m.category}
-                  onChange={(e) => onSave({ ...m, category: e.target.value })}
+                  value={m.category === "broadcaster" && m.gender ? `broadcaster_${m.gender}` : m.category}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "broadcaster_male") {
+                      onSave({ ...m, category: "broadcaster", gender: "male" });
+                    } else if (value === "broadcaster_female") {
+                      onSave({ ...m, category: "broadcaster", gender: "female" });
+                    } else {
+                      onSave({ ...m, category: value, gender: null });
+                    }
+                  }}
                   className="cursor-pointer rounded-md bg-white/[0.03] px-2 py-1 text-xs text-white/70 transition-colors hover:bg-white/[0.06] focus:outline-none"
                   onClick={(e) => e.stopPropagation()}
                   style={{ colorScheme: "dark" }}
                 >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat} style={{ backgroundColor: "#0a0a0a" }}>{CATEGORY_LABELS[cat]}</option>
-                  ))}
+                  {CATEGORIES.map((cat) => {
+                    if (cat === "broadcaster") {
+                      return [
+                        <option key="broadcaster_male" value="broadcaster_male" style={{ backgroundColor: "#0a0a0a" }}>Бродкастеры (М)</option>,
+                        <option key="broadcaster_female" value="broadcaster_female" style={{ backgroundColor: "#0a0a0a" }}>Бродкастеры (Ж)</option>,
+                      ];
+                    }
+                    return <option key={cat} value={cat} style={{ backgroundColor: "#0a0a0a" }}>{CATEGORY_LABELS[cat]}</option>;
+                  })}
                 </select>
                 <button onClick={() => setEdit(true)} className="text-white/40 hover:text-white"><Pencil className="h-4 w-4" /></button>
                 <button onClick={() => setConfirmDel(true)} className="text-white/40 hover:text-red-400"><Trash2 className="h-4 w-4" /></button>
