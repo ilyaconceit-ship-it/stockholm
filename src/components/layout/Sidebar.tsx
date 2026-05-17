@@ -26,7 +26,6 @@ const broadcasterItems: NavItem[] = [
 ];
 
 const bottomItems: NavItem[] = [
-  { to: "/rules", label: "Памятка", icon: BookOpen },
   { to: "/settings", label: "Настройки", icon: Settings },
 ];
 
@@ -78,21 +77,22 @@ function buildNavItems(role: AppRole | null): NavItem[] {
 
   const staffLabel = role === "admin" ? "Ветка (Broadcaster)" : "Ветка";
   const staffItem: NavItem = { to: staffRoute, label: staffLabel, icon: Users };
+  const rulesItem: NavItem = { to: "/rules", label: "Памятка", icon: BookOpen };
 
   const adminItem: NavItem = { to: "/admin", label: "Админ-панель", icon: ShieldCheck };
   const rouletteItem: NavItem = { to: "/roulette", label: "Рулетка", icon: Dices };
 
   if (role === "admin") {
-    return [sharedItems[0], staffItem, ...broadcasterItems, ...sharedItems.slice(1), adminItem, rouletteItem];
+    return [sharedItems[0], staffItem, rulesItem, ...broadcasterItems, ...sharedItems.slice(1), adminItem, rouletteItem];
   }
 
   if (role === "broadcaster" || role === "admin_broadcaster") {
-    const base = [sharedItems[0], staffItem, ...broadcasterItems, ...sharedItems.slice(1)];
+    const base = [sharedItems[0], staffItem, rulesItem, ...broadcasterItems, ...sharedItems.slice(1)];
     return canAdmin ? [...base, adminItem, rouletteItem] : base;
   }
 
   // All other staff/branch-admin roles
-  const base = [sharedItems[0], staffItem, ...sharedItems.slice(1)];
+  const base = [sharedItems[0], staffItem, rulesItem, ...sharedItems.slice(1)];
   return canAdmin ? [...base, adminItem, rouletteItem] : base;
 }
 

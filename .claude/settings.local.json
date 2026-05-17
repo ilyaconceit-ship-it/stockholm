@@ -11,7 +11,10 @@
       "Bash(curl *)",
       "Bash(pkill -f \"vite dev\")",
       "Bash(taskkill //F //IM node.exe)",
-      "Bash(netstat -ano)"
+      "Bash(netstat -ano)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }

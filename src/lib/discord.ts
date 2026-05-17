@@ -2,6 +2,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 const GUILD_ID = "935695524831567972";
 
+// Gender role IDs
+const GENDER_ROLE_MALE = "1341206944429641788";
+const GENDER_ROLE_FEMALE = "1444053609749938238";
+
 export type StaffRole =
   | "broadcaster"
   | "support"
@@ -94,6 +98,9 @@ export async function checkDiscordRole(
     const member = await memberResponse.json();
     const memberRoles: string[] = member.roles ?? [];
 
+    // Store member roles for gender check
+    (globalThis as any).__lastMemberRoles = memberRoles;
+
     // Collect ALL matching staff roles
     const matched: StaffRole[] = [];
     for (const [discordRoleId, appRole] of Object.entries(DISCORD_ROLE_MAP)) {
@@ -149,21 +156,49 @@ export async function autoApproveDiscordUser(
       .single();
 
     if (!existing) {
-      // Get default category for this role (lowest display_order = entry level)
-      const { data: defaultCategory } = await supabase
+      // Determine category based on role and gender (for broadcasters)
+      let categoryName = null;
+
+      if (primaryRole === "broadcaster") {
+        // Check gender roles from stored member roles
+        const memberRoles: string[] = (globalThis as any).__lastMemberRoles || [];
+        const isMale = memberRoles.includes(GENDER_ROLE_MALE);
+        const isFemale = memberRoles.includes(GENDER_ROLE_FEMALE);
+
+        if (isMale) {
+          categoryName = "Бродкастер (М)";
+        } else if (isFemale) {
+          categoryName = "Бродкастер (Ж)";
+        } else {
+          categoryName = "Бродкастер"; // fallback if no gender role
+        }
+      }
+
+      // Get category ID
+      const { data: category } = await supabase
         .from("staff_categories")
         .select("id")
         .eq("branch", primaryRole)
-        .order("display_order", { ascending: false })
-        .limit(1)
-        .single();
+        .eq("name", categoryName || "")
+        .maybeSingle();
+
+      // Fallback: get default category (highest display_order = entry level)
+      const { data: defaultCategory } = !category
+        ? await supabase
+            .from("staff_categories")
+            .select("id")
+            .eq("branch", primaryRole)
+            .order("display_order", { ascending: false })
+            .limit(1)
+            .single()
+        : { data: null };
 
       await supabase.from("staff_members").insert({
         nickname: username,
         discord_id: discordId,
         avatar: avatarHash,
         category: primaryRole,
-        category_id: defaultCategory?.id,
+        category_id: category?.id || defaultCategory?.id,
         join_date: new Date().toISOString().split("T")[0],
         warnings: "0",
         vacation: false,
