@@ -33,8 +33,8 @@ const MIME = {
   ".map":   "application/json",
 };
 
-// Load the built server entry (dist/server/index.js)
-const serverEntryPath = join(__dirname, "dist", "server", "index.js");
+// Load the built server entry (dist/server/server.js)
+const serverEntryPath = join(__dirname, "dist", "server", "server.js");
 console.log(`Loading server entry: ${serverEntryPath}`);
 const { default: serverHandler } = await import(serverEntryPath);
 
