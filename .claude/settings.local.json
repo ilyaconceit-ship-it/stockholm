@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(docker *)",
+      "Bash(psql *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(curl -s http://localhost:8080)",
+      "Bash(curl -X POST \"https://spkecqqqjqpyzauwvcvp.supabase.co/rest/v1/rpc/has_role\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwa2VjcXFxanFweXphdXd2Y3ZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MzQ0MjUsImV4cCI6MjA5NDUxMDQyNX0.731P49in6efESrsE7njoBC8RDUpPjiyF3JpK_00A1X8\")",
+      "Bash(curl *)",
+      "Bash(pkill -f \"vite dev\")",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(netstat -ano)"
+    ]
+  }
+}
