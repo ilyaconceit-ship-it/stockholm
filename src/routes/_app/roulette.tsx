@@ -44,7 +44,7 @@ const TRACKS = [
   },
 ];
 
-const COOLDOWN_DAYS = 3;
+const COOLDOWN_DAYS = 0; // Временно отключен для тестирования
 
 function RouletteWheel({ spinning, result }: { spinning: boolean; result: typeof TRACKS[0] | null }) {
   return (
