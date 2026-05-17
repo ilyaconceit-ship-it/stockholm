@@ -27,7 +27,7 @@ type Member = {
   avatar: string | null; gender: string | null;
 };
 
-function StaffRow({ m, isAdmin, onSave, onDel }: { m: Member; isAdmin: boolean; onSave: (patch: any) => void; onDel: () => void }) {
+function StaffRow({ m, isAdmin, onSave, onDel, index }: { m: Member; isAdmin: boolean; onSave: (patch: any) => void; onDel: () => void; index: number }) {
   const [edit, setEdit] = useState(false);
   const [draft, setDraft] = useState(m);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -44,6 +44,7 @@ function StaffRow({ m, isAdmin, onSave, onDel }: { m: Member; isAdmin: boolean; 
 
   return (
     <tr className="group border-b border-white/5 transition-colors hover:bg-white/[0.03]">
+      <td className="px-4 py-3 text-center text-sm text-white/40">{index + 1}</td>
       <td className="px-4 py-3 text-sm">
         <div className="flex items-center gap-2">
           <img src={avatarUrl} alt="" className="h-6 w-6 rounded-full" onError={(e) => { e.currentTarget.src = "/logo.png"; }} />
@@ -194,6 +195,7 @@ function StaffPage() {
                 <table className="w-full text-left">
                   <thead>
                     <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-white/40">
+                      <th className="px-4 py-2 text-center font-normal">#</th>
                       <th className="px-4 py-2 font-normal">Ник</th>
                       <th className="px-4 py-2 font-normal">Discord ID</th>
                       <th className="px-4 py-2 font-normal">Вступил</th>
@@ -204,14 +206,15 @@ function StaffPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((m) => (
-                      <StaffRow key={m.id} m={m} isAdmin={isAdmin}
+                    {items.map((m, idx) => (
+                      <StaffRow key={m.id} m={m} isAdmin={isAdmin} index={idx}
                         onSave={(patch) => upd.mutate({ id: m.id, patch }, { onSuccess: () => toast.success("Сохранено") })}
                         onDel={() => del.mutate(m.id, { onSuccess: () => toast.success("Удалено"), onError: (e: any) => toast.error("Ошибка: " + e.message) })}
                       />
                     ))}
                     {adding === cat && (
                       <tr className="border-b border-white/5 bg-white/[0.04]">
+                        <td className="px-4 py-3"></td>
                         <td className="px-4 py-3"><input autoFocus placeholder="nickname" value={newRow.nickname} onChange={(e) => setNewRow({ ...newRow, nickname: e.target.value })} className="w-full bg-transparent text-white focus:outline-none" /></td>
                         <td className="px-4 py-3"><input placeholder="discord id" value={newRow.discord_id} onChange={(e) => setNewRow({ ...newRow, discord_id: e.target.value })} className="w-full bg-transparent text-xs text-white/70 focus:outline-none" /></td>
                         <td colSpan={4}></td>
@@ -226,7 +229,7 @@ function StaffPage() {
                       </tr>
                     )}
                     {items.length === 0 && adding !== cat && (
-                      <tr><td colSpan={isAdmin ? 7 : 6} className="py-6 text-center text-sm text-white/30">Нет участников</td></tr>
+                      <tr><td colSpan={isAdmin ? 8 : 7} className="py-6 text-center text-sm text-white/30">Нет участников</td></tr>
                     )}
                   </tbody>
                 </table>
