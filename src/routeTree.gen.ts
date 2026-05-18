@@ -23,6 +23,7 @@ import { Route as AppRulesRouteImport } from './routes/_app/rules'
 import { Route as AppRouletteRouteImport } from './routes/_app/roulette'
 import { Route as AppNormsRouteImport } from './routes/_app/norms'
 import { Route as AppModeratorStaffRouteImport } from './routes/_app/moderator-staff'
+import { Route as AppModeratorShiftsRouteImport } from './routes/_app/moderator-shifts'
 import { Route as AppMeetingsRouteImport } from './routes/_app/meetings'
 import { Route as AppHelperStaffRouteImport } from './routes/_app/helper-staff'
 import { Route as AppEventsmodStaffRouteImport } from './routes/_app/eventsmod-staff'
@@ -103,6 +104,11 @@ const AppModeratorStaffRoute = AppModeratorStaffRouteImport.update({
   path: '/moderator-staff',
   getParentRoute: () => AppRoute,
 } as any)
+const AppModeratorShiftsRoute = AppModeratorShiftsRouteImport.update({
+  id: '/moderator-shifts',
+  path: '/moderator-shifts',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMeetingsRoute = AppMeetingsRouteImport.update({
   id: '/meetings',
   path: '/meetings',
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/eventsmod-staff': typeof AppEventsmodStaffRoute
   '/helper-staff': typeof AppHelperStaffRoute
   '/meetings': typeof AppMeetingsRoute
+  '/moderator-shifts': typeof AppModeratorShiftsRoute
   '/moderator-staff': typeof AppModeratorStaffRoute
   '/norms': typeof AppNormsRoute
   '/roulette': typeof AppRouletteRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByTo {
   '/eventsmod-staff': typeof AppEventsmodStaffRoute
   '/helper-staff': typeof AppHelperStaffRoute
   '/meetings': typeof AppMeetingsRoute
+  '/moderator-shifts': typeof AppModeratorShiftsRoute
   '/moderator-staff': typeof AppModeratorStaffRoute
   '/norms': typeof AppNormsRoute
   '/roulette': typeof AppRouletteRoute
@@ -220,6 +228,7 @@ export interface FileRoutesById {
   '/_app/eventsmod-staff': typeof AppEventsmodStaffRoute
   '/_app/helper-staff': typeof AppHelperStaffRoute
   '/_app/meetings': typeof AppMeetingsRoute
+  '/_app/moderator-shifts': typeof AppModeratorShiftsRoute
   '/_app/moderator-staff': typeof AppModeratorStaffRoute
   '/_app/norms': typeof AppNormsRoute
   '/_app/roulette': typeof AppRouletteRoute
@@ -247,6 +256,7 @@ export interface FileRouteTypes {
     | '/eventsmod-staff'
     | '/helper-staff'
     | '/meetings'
+    | '/moderator-shifts'
     | '/moderator-staff'
     | '/norms'
     | '/roulette'
@@ -272,6 +282,7 @@ export interface FileRouteTypes {
     | '/eventsmod-staff'
     | '/helper-staff'
     | '/meetings'
+    | '/moderator-shifts'
     | '/moderator-staff'
     | '/norms'
     | '/roulette'
@@ -298,6 +309,7 @@ export interface FileRouteTypes {
     | '/_app/eventsmod-staff'
     | '/_app/helper-staff'
     | '/_app/meetings'
+    | '/_app/moderator-shifts'
     | '/_app/moderator-staff'
     | '/_app/norms'
     | '/_app/roulette'
@@ -418,6 +430,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppModeratorStaffRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/moderator-shifts': {
+      id: '/_app/moderator-shifts'
+      path: '/moderator-shifts'
+      fullPath: '/moderator-shifts'
+      preLoaderRoute: typeof AppModeratorShiftsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/meetings': {
       id: '/_app/meetings'
       path: '/meetings'
@@ -502,6 +521,7 @@ interface AppRouteChildren {
   AppEventsmodStaffRoute: typeof AppEventsmodStaffRoute
   AppHelperStaffRoute: typeof AppHelperStaffRoute
   AppMeetingsRoute: typeof AppMeetingsRoute
+  AppModeratorShiftsRoute: typeof AppModeratorShiftsRoute
   AppModeratorStaffRoute: typeof AppModeratorStaffRoute
   AppNormsRoute: typeof AppNormsRoute
   AppRouletteRoute: typeof AppRouletteRoute
@@ -524,6 +544,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEventsmodStaffRoute: AppEventsmodStaffRoute,
   AppHelperStaffRoute: AppHelperStaffRoute,
   AppMeetingsRoute: AppMeetingsRoute,
+  AppModeratorShiftsRoute: AppModeratorShiftsRoute,
   AppModeratorStaffRoute: AppModeratorStaffRoute,
   AppNormsRoute: AppNormsRoute,
   AppRouletteRoute: AppRouletteRoute,
