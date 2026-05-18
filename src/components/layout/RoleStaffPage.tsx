@@ -13,7 +13,16 @@ type Member = {
   avatar: string | null; total_points: number | null; shift_id: number | null;
 };
 
-function MemberRow({ m, isAdmin, onSave, onDel, index, showPoints }: { m: Member; isAdmin: boolean; onSave: (patch: any) => void; onDel: () => void; index: number; showPoints?: boolean }) {
+function MemberRow({ m, isAdmin, onSave, onDel, index, showPoints, showShift, shifts }: {
+  m: Member;
+  isAdmin: boolean;
+  onSave: (patch: any) => void;
+  onDel: () => void;
+  index: number;
+  showPoints?: boolean;
+  showShift?: boolean;
+  shifts?: Array<{ id: number; name: string }>;
+}) {
   const [edit, setEdit] = useState(false);
   const [draft, setDraft] = useState(m);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -89,6 +98,23 @@ function MemberRow({ m, isAdmin, onSave, onDel, index, showPoints }: { m: Member
           </span>
         </td>
       )}
+      {showShift && isAdmin && (
+        <td className="px-4 py-3 text-center">
+          <select
+            value={m.shift_id ?? ""}
+            onChange={(e) => onSave({ ...m, shift_id: e.target.value ? Number(e.target.value) : null })}
+            className="cursor-pointer rounded-md bg-white/[0.03] px-2 py-1 text-xs text-white/70 transition-colors hover:bg-white/[0.06] focus:outline-none"
+            style={{ colorScheme: "dark" }}
+          >
+            <option value="">Не назначена</option>
+            {shifts?.map((shift) => (
+              <option key={shift.id} value={shift.id} style={{ backgroundColor: "#0a0a0a" }}>
+                {shift.name}
+              </option>
+            ))}
+          </select>
+        </td>
+      )}
       {isAdmin && (
         <td className="px-4 py-3 text-right">
           <div className="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
@@ -136,6 +162,7 @@ export function RoleStaffPage({ staffRole }: RoleStaffPageProps) {
 
   const { data: allStaff = [] } = useList<Member>("staff_members", { col: "join_date", asc: true });
   const { data: categories = [] } = useList<Category>("staff_categories", { col: "display_order", asc: true });
+  const { data: shifts = [] } = useList<{ id: number; name: string }>("shifts", { col: "name", asc: true });
 
   // Filter categories for this branch and staff for this role
   const branchCategories = categories.filter((c) => c.branch === staffRole).sort((a, b) => a.display_order - b.display_order);
@@ -183,6 +210,7 @@ export function RoleStaffPage({ staffRole }: RoleStaffPageProps) {
                       <th className="px-4 py-2 text-center font-normal">Предупреждения</th>
                       <th className="px-4 py-2 text-center font-normal">Статус</th>
                       {staffRole === "moderator" && <th className="px-4 py-2 text-center font-normal">Баллы</th>}
+                      {staffRole === "moderator" && isAdmin && <th className="px-4 py-2 text-center font-normal">Смена</th>}
                       {isAdmin && <th className="px-4 py-2"></th>}
                     </tr>
                   </thead>
@@ -194,6 +222,8 @@ export function RoleStaffPage({ staffRole }: RoleStaffPageProps) {
                         isAdmin={isAdmin}
                         index={idx}
                         showPoints={staffRole === "moderator"}
+                        showShift={staffRole === "moderator"}
+                        shifts={shifts}
                         onSave={(patch) => upd.mutate({ id: m.id, patch }, { onSuccess: () => toast.success("Сохранено") })}
                         onDel={() => del.mutate(m.id, { onSuccess: () => toast.success("Удалено"), onError: (e: any) => toast.error("Ошибка: " + e.message) })}
                       />
@@ -226,7 +256,7 @@ export function RoleStaffPage({ staffRole }: RoleStaffPageProps) {
                     )}
                     {categoryMembers.length === 0 && adding !== category.id && (
                       <tr>
-                        <td colSpan={isAdmin ? (staffRole === "moderator" ? 9 : 8) : (staffRole === "moderator" ? 8 : 7)} className="py-6 text-center text-sm text-white/30">Нет участников</td>
+                        <td colSpan={isAdmin ? (staffRole === "moderator" ? 10 : 8) : (staffRole === "moderator" ? 8 : 7)} className="py-6 text-center text-sm text-white/30">Нет участников</td>
                       </tr>
                     )}
                   </tbody>
