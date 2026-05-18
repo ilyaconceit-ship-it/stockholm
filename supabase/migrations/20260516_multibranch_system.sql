@@ -18,7 +18,7 @@ alter table public.branches enable row level security;
 
 -- Insert all staff branches
 insert into public.branches (name, discord_role_id, display_name, color) values
-  ('broadcaster', '993642256856789082', 'Broadcaster', '#ff6b9d'),
+  ('broadcaster', '993885878491549848', 'Broadcaster', '#ff6b9d'),
   ('support', '993642256856789082', 'Support', '#4ade80'),
   ('control', '993642219397460079', 'Control', '#60a5fa'),
   ('closemod', '1097305941386461184', 'Close Moderator', '#a78bfa'),
