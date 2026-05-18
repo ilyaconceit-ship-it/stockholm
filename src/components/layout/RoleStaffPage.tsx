@@ -6,7 +6,7 @@ import { useList, useInsert, useUpdate, useDelete } from "@/lib/hooks/useTable";
 import { useAuthStore } from "@/lib/stores/auth";
 import { STAFF_ROLE_LABELS, type StaffRole } from "@/lib/discord";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 type Member = {
   id: string; nickname: string; discord_id: string | null; name: string | null;
