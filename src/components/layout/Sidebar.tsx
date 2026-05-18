@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard, Users, CalendarDays, Mic, Activity,
-  Banknote, Heart, Ban, Settings, BookOpen, ShieldCheck, Dices,
+  Banknote, Heart, Ban, Settings, BookOpen, ShieldCheck, Dices, Clock,
 } from "lucide-react";
 import { useAuthStore, type AppRole } from "@/lib/stores/auth";
 import { getBranch, isBranchAdmin, STAFF_ROLE_LABELS, type StaffRole } from "@/lib/discord";
@@ -82,12 +82,21 @@ function buildNavItems(role: AppRole | null): NavItem[] {
   const adminItem: NavItem = { to: "/admin", label: "Админ-панель", icon: ShieldCheck };
   const rouletteItem: NavItem = { to: "/roulette", label: "Рулетка", icon: Dices };
 
+  // Shifts page only for moderator admins
+  const shiftsItem: NavItem = { to: "/moderator-shifts", label: "Смены", icon: Clock };
+
   if (role === "admin") {
     return [sharedItems[0], staffItem, rulesItem, ...broadcasterItems, ...sharedItems.slice(1), adminItem, rouletteItem];
   }
 
   if (role === "broadcaster" || role === "admin_broadcaster") {
     const base = [sharedItems[0], staffItem, rulesItem, ...broadcasterItems, ...sharedItems.slice(1)];
+    return canAdmin ? [...base, adminItem, rouletteItem] : base;
+  }
+
+  // Moderator branch - add shifts page for admins
+  if (branch === "moderator") {
+    const base = [sharedItems[0], staffItem, shiftsItem, rulesItem, ...sharedItems.slice(1)];
     return canAdmin ? [...base, adminItem, rouletteItem] : base;
   }
 

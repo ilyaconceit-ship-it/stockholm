@@ -1,44 +1,16 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Pencil, X, Check, Copy, Save } from "lucide-react";
+import { Plus, Trash2, Pencil, X, Check, Copy } from "lucide-react";
 import { PageHeader, GlassCard } from "@/components/layout/PageHeader";
 import { useList, useInsert, useUpdate, useDelete } from "@/lib/hooks/useTable";
 import { useAuthStore } from "@/lib/stores/auth";
 import { STAFF_ROLE_LABELS, type StaffRole } from "@/lib/discord";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 type Member = {
   id: string; nickname: string; discord_id: string | null; name: string | null;
   category: string; category_id: string | null; join_date: string; warnings: string | null; vacation: boolean; active: boolean;
   avatar: string | null; total_points: number | null; shift_id: number | null;
-};
-
-type Shift = {
-  id: number;
-  name: string;
-};
-
-type ShiftWeek = {
-  id: number;
-  shift_id: number;
-  week_start: string;
-  week_end: string;
-};
-
-type Attendance = {
-  id?: string;
-  shift_week_id: number;
-  staff_id: string;
-  monday: boolean;
-  tuesday: boolean;
-  wednesday: boolean;
-  thursday: boolean;
-  friday: boolean;
-  saturday: boolean;
-  sunday: boolean;
-  extra_hours: number;
-  vacation_days: number;
 };
 
 function MemberRow({ m, isAdmin, onSave, onDel, index, showPoints }: { m: Member; isAdmin: boolean; onSave: (patch: any) => void; onDel: () => void; index: number; showPoints?: boolean }) {
@@ -164,7 +136,6 @@ export function RoleStaffPage({ staffRole }: RoleStaffPageProps) {
 
   const { data: allStaff = [] } = useList<Member>("staff_members", { col: "join_date", asc: true });
   const { data: categories = [] } = useList<Category>("staff_categories", { col: "display_order", asc: true });
-  const { data: shifts = [] } = useList<Shift>("shifts", { col: "name", asc: true });
 
   // Filter categories for this branch and staff for this role
   const branchCategories = categories.filter((c) => c.branch === staffRole).sort((a, b) => a.display_order - b.display_order);
@@ -181,116 +152,6 @@ export function RoleStaffPage({ staffRole }: RoleStaffPageProps) {
     category: cat,
     members: members.filter((m) => m.category_id === cat.id),
   }));
-
-  // Shifts section state (only for moderators)
-  const [selectedShift, setSelectedShift] = useState<number | null>(null);
-  const [currentWeek, setCurrentWeek] = useState<ShiftWeek | null>(null);
-  const [attendance, setAttendance] = useState<Record<string, Attendance>>({});
-  const [loadingShifts, setLoadingShifts] = useState(false);
-
-  // Load week and attendance when shift is selected
-  const loadShiftWeek = async (shiftId: number) => {
-    setLoadingShifts(true);
-    try {
-      // Get or create current week
-      const { data: weekId, error: weekError } = await supabase.rpc("create_new_week_for_shift", {
-        p_shift_id: shiftId,
-      });
-
-      if (weekError) throw weekError;
-
-      // Get week details
-      const { data: weekData, error: weekDataError } = await supabase
-        .from("shift_weeks")
-        .select("*")
-        .eq("id", weekId)
-        .single();
-
-      if (weekDataError) throw weekDataError;
-      setCurrentWeek(weekData);
-
-      // Load attendance
-      const { data: attData, error: attError } = await supabase
-        .from("shift_attendance")
-        .select("*")
-        .eq("shift_week_id", weekId);
-
-      if (attError) throw attError;
-
-      const attMap: Record<string, Attendance> = {};
-      attData?.forEach((a) => {
-        attMap[a.staff_id] = a;
-      });
-      setAttendance(attMap);
-    } catch (error: any) {
-      toast.error("Ошибка загрузки недели: " + error.message);
-    } finally {
-      setLoadingShifts(false);
-    }
-  };
-
-  const handleShiftChange = (shiftId: number) => {
-    setSelectedShift(shiftId);
-    setCurrentWeek(null);
-    setAttendance({});
-    loadShiftWeek(shiftId);
-  };
-
-  const updateAttendance = (staffId: string, field: keyof Attendance, value: any) => {
-    setAttendance((prev) => ({
-      ...prev,
-      [staffId]: {
-        ...(prev[staffId] || {
-          shift_week_id: currentWeek!.id,
-          staff_id: staffId,
-          monday: false,
-          tuesday: false,
-          wednesday: false,
-          thursday: false,
-          friday: false,
-          saturday: false,
-          sunday: false,
-          extra_hours: 0,
-          vacation_days: 0,
-        }),
-        [field]: value,
-      },
-    }));
-  };
-
-  const saveAttendance = async (staffId: string) => {
-    if (!currentWeek) return;
-
-    const data = attendance[staffId];
-    if (!data) return;
-
-    try {
-      const { error } = await supabase.from("shift_attendance").upsert(
-        {
-          shift_week_id: currentWeek.id,
-          staff_id: staffId,
-          monday: data.monday,
-          tuesday: data.tuesday,
-          wednesday: data.wednesday,
-          thursday: data.thursday,
-          friday: data.friday,
-          saturday: data.saturday,
-          sunday: data.sunday,
-          extra_hours: data.extra_hours,
-          vacation_days: data.vacation_days,
-        },
-        { onConflict: "shift_week_id,staff_id" }
-      );
-
-      if (error) throw error;
-
-      toast.success(`Сохранено для ${members.find((m) => m.id === staffId)?.nickname}`);
-    } catch (error: any) {
-      toast.error("Ошибка сохранения: " + error.message);
-    }
-  };
-
-  const shiftMembers = selectedShift ? members.filter((m) => m.shift_id === selectedShift) : [];
 
   return (
     <div>
@@ -374,124 +235,6 @@ export function RoleStaffPage({ staffRole }: RoleStaffPageProps) {
             </GlassCard>
           </motion.div>
         ))}
-
-        {/* Shifts section - only for moderators */}
-        {staffRole === "moderator" && isAdmin && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: grouped.length * 0.05 }}
-          >
-            <GlassCard>
-              <div className="mb-4">
-                <h2 className="font-display text-2xl text-white/90 mb-4">Смены</h2>
-                <select
-                  value={selectedShift ?? ""}
-                  onChange={(e) => handleShiftChange(Number(e.target.value))}
-                  className="w-full rounded-md bg-white/5 px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-white/20"
-                  style={{ colorScheme: "dark" }}
-                >
-                  <option value="">Выберите смену</option>
-                  {shifts.map((shift) => (
-                    <option key={shift.id} value={shift.id} style={{ backgroundColor: "#0a0a0a" }}>
-                      {shift.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedShift && currentWeek && !loadingShifts && (
-                <div className="overflow-x-auto">
-                  <div className="mb-2 text-xs text-white/50">
-                    Неделя: {new Date(currentWeek.week_start).toLocaleDateString("ru-RU")} - {new Date(currentWeek.week_end).toLocaleDateString("ru-RU")}
-                  </div>
-                  {shiftMembers.length === 0 ? (
-                    <p className="py-6 text-center text-sm text-white/30">Нет модераторов в этой смене</p>
-                  ) : (
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-white/40">
-                          <th className="px-4 py-2 font-normal">Модератор</th>
-                          <th className="px-4 py-2 text-center font-normal">ПН</th>
-                          <th className="px-4 py-2 text-center font-normal">ВТ</th>
-                          <th className="px-4 py-2 text-center font-normal">СР</th>
-                          <th className="px-4 py-2 text-center font-normal">ЧТ</th>
-                          <th className="px-4 py-2 text-center font-normal">ПТ</th>
-                          <th className="px-4 py-2 text-center font-normal">СБ</th>
-                          <th className="px-4 py-2 text-center font-normal">ВС</th>
-                          <th className="px-4 py-2 text-center font-normal">Доп. часы</th>
-                          <th className="px-4 py-2 text-center font-normal">Баллы</th>
-                          <th className="px-4 py-2"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {shiftMembers.map((member) => {
-                          const att = attendance[member.id] || {
-                            monday: false,
-                            tuesday: false,
-                            wednesday: false,
-                            thursday: false,
-                            friday: false,
-                            saturday: false,
-                            sunday: false,
-                            extra_hours: 0,
-                            vacation_days: 0,
-                          };
-
-                          const pointsEarned = att.extra_hours / 2;
-
-                          return (
-                            <tr key={member.id} className="group border-b border-white/5 transition-colors hover:bg-white/[0.03]">
-                              <td className="px-4 py-3 text-sm text-white">{member.nickname}</td>
-                              {(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const).map((day) => (
-                                <td key={day} className="px-4 py-3 text-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={att[day]}
-                                    onChange={(e) => updateAttendance(member.id, day, e.target.checked)}
-                                    className="h-4 w-4 cursor-pointer rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-2 focus:ring-emerald-500/50"
-                                  />
-                                </td>
-                              ))}
-                              <td className="px-4 py-3 text-center">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="168"
-                                  step="0.5"
-                                  value={att.extra_hours}
-                                  onChange={(e) => updateAttendance(member.id, "extra_hours", parseFloat(e.target.value) || 0)}
-                                  className="w-20 rounded-md bg-white/5 px-2 py-1 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/20"
-                                />
-                              </td>
-                              <td className="px-4 py-3 text-center">
-                                <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-sm font-medium text-emerald-300">
-                                  +{pointsEarned.toFixed(1)}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 text-right">
-                                <button
-                                  onClick={() => saveAttendance(member.id)}
-                                  className="flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-300 transition-colors hover:bg-emerald-500/20"
-                                >
-                                  <Save className="h-3.5 w-3.5" /> Сохранить
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              )}
-
-              {loadingShifts && (
-                <p className="py-6 text-center text-sm text-white/50">Загрузка...</p>
-              )}
-            </GlassCard>
-          </motion.div>
-        )}
       </div>
     </div>
   );
